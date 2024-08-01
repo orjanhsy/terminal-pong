@@ -1,1 +1,1 @@
-Terminal two player pong game! <3
+Terminal two player pong game! :)
