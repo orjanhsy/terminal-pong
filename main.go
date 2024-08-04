@@ -3,15 +3,22 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gdamore/tcell"
 )
 
 type Game struct {
-	bat    *Bat
-	status string
-	screen tcell.Screen
+  players [2]*player
+	status  string
+	screen  tcell.Screen
+}
+
+type player struct {
+  name    string
+  score   int
+	bat     *Bat
 }
 
 type Bat struct {
@@ -41,7 +48,53 @@ func (d Direction) string() string {
 
 }
 
-func (b *Bat) move() {
+func newGame() *Game {
+  p1 := newPlayer(1)
+  p2 := newPlayer(2)
+
+	s, err := tcell.NewScreen()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := s.Init(); err != nil {
+		log.Fatal(err)
+	}
+
+	game := &Game{
+		players: [2]*player{p1,p2},
+		status: "on",
+		screen: s,
+	}
+	go game.playerInput()
+	return game
+}
+
+func newPlayer(playerNum int) *player {
+  lengthFromBorder := 20
+  xPos, _ := getSize()
+  if playerNum == 1 {
+    xPos = lengthFromBorder
+  } else {
+    xPos -= lengthFromBorder
+  }
+  p := &player{
+    name: "Player " + strconv.Itoa(playerNum),
+    score: 0,
+    bat: newBat(xPos),
+  }    
+  return p
+}
+
+func newBat(xPos int) *Bat {
+	_, maxY := getSize()
+	b := &Bat{
+		pos: [2]int{xPos, maxY / 2},
+		dir: static,
+	}
+	return b
+}
+
+func (b *Bat) moveBat() {
   _, maxY := getSize()
   switch b.dir {
   case up:
@@ -58,52 +111,6 @@ func (b *Bat) move() {
   }
 }
 
-func main() {
-	g := newGame()
-
-	defer g.quit()
-
-	for g.status != "off" {
-		g.screen.Show()
-    g.bat.move()
-		g.draw(tcell.StyleDefault)
-	}
-
-}
-
-func newGame() *Game {
-	b := newBat()
-
-	s, err := tcell.NewScreen()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := s.Init(); err != nil {
-		log.Fatal(err)
-	}
-
-	game := &Game{
-		bat:    b,
-		status: "on",
-		screen: s,
-	}
-
-	go game.playerInput()
-
-	return game
-}
-
-func newBat() *Bat {
-	maxX, maxY := getSize()
-	b := &Bat{
-		pos: [2]int{maxX / 2, maxY / 2},
-		dir: static,
-	}
-
-	return b
-}
-
 func (g *Game) draw(style tcell.Style) {
 	g.screen.Clear()	
 	
@@ -112,14 +119,19 @@ func (g *Game) draw(style tcell.Style) {
 		g.screen.SetContent(i, 0, r, nil, style)
 	}
 
-	direction := g.bat.dir
+	direction := g.players[0].bat.dir
 	for i, r := range []rune(direction.string()) {
 		g.screen.SetContent(i, 2, r, nil, style)
 	}
-
-	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1]-1, '|', nil, style)
-	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1]+0, '|', nil, style)
-	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1]+1, '|', nil, style)
+  
+  // player 1
+	g.screen.SetContent(g.players[0].bat.pos[0], g.players[0].bat.pos[1]-1, '|', nil, style)
+	g.screen.SetContent(g.players[0].bat.pos[0], g.players[0].bat.pos[1]+0, '|', nil, style)
+	g.screen.SetContent(g.players[0].bat.pos[0], g.players[0].bat.pos[1]+1, '|', nil, style)
+  // player 2
+	g.screen.SetContent(g.players[1].bat.pos[0], g.players[1].bat.pos[1]-1, '|', nil, style)
+	g.screen.SetContent(g.players[1].bat.pos[0], g.players[1].bat.pos[1]+0, '|', nil, style)
+	g.screen.SetContent(g.players[1].bat.pos[0], g.players[1].bat.pos[1]+1, '|', nil, style)
 	g.screen.Show()
 
 	time.Sleep(time.Millisecond * 20)
@@ -137,9 +149,9 @@ func (g *Game) playerInput() {
 			g.screen.Sync()
 		case *tcell.EventKey:
       if ev.Key() == tcell.KeyUp {
-        g.bat.dir = up
+        g.players[0].bat.dir = up
       } else if ev.Key() == tcell.KeyDown {
-        g.bat.dir = down
+        g.players[0].bat.dir = down
       } else if ev.Key() == tcell.KeyCtrlC || ev.Rune() =='q' {  //ev.Rune() for chars
         g.status = "off"
       }
@@ -150,4 +162,15 @@ func (g *Game) playerInput() {
 func (g *Game) quit() {
 	g.screen.Fini()
 	os.Exit(0)
+}
+
+func main() {
+	g := newGame()
+	defer g.quit()
+	for g.status != "off" {
+		g.screen.Show()
+    g.players[0].bat.moveBat()
+    //g.players[1].bat.moveBat()
+		g.draw(tcell.StyleDefault)
+	}
 }
