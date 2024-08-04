@@ -9,7 +9,7 @@ import (
 )
 
 type Game struct {
-	bat *Bat
+	bat    *Bat
 	status string
 	screen tcell.Screen
 }
@@ -36,9 +36,26 @@ func (d Direction) string() string {
 	case static:
 		return "static"
 	default:
-		return	"no direction registered"
+		return "no direction registered"
 	}
 
+}
+
+func (b *Bat) move() {
+  _, maxY := getSize()
+  switch b.dir {
+  case up:
+    if b.pos[1] > 1 { // account for bat-size here
+      b.pos[1]--
+    }
+    b.dir = static
+  case down:
+    if b.pos[1] < maxY - 2 {
+      b.pos[1]++
+    }
+    b.dir = static
+  case static:
+  }
 }
 
 func main() {
@@ -48,23 +65,14 @@ func main() {
 
 	for g.status != "off" {
 		g.screen.Show()
-		switch g.bat.dir {
-		case up:
-			g.bat.pos[1]--
-			g.bat.dir = static
-		case down:
-			g.bat.pos[1]++
-			g.bat.dir = static
-		case static:
-		}
+    g.bat.move()
 		g.draw(tcell.StyleDefault)
 	}
 
 }
 
-
 func newGame() *Game {
-	b := newBat()	
+	b := newBat()
 
 	s, err := tcell.NewScreen()
 	if err != nil {
@@ -76,7 +84,7 @@ func newGame() *Game {
 	}
 
 	game := &Game{
-		bat: b,
+		bat:    b,
 		status: "on",
 		screen: s,
 	}
@@ -97,21 +105,21 @@ func newBat() *Bat {
 }
 
 func (g *Game) draw(style tcell.Style) {
-	g.screen.Clear()	
-	
+	g.screen.Clear()
+
 	var quitText = "hit ctrl + c to quit"
 	for i, r := range []rune(quitText) {
 		g.screen.SetContent(i, 0, r, nil, style)
 	}
 
-	direction := g.bat.dir 
+	direction := g.bat.dir
 	for i, r := range []rune(direction.string()) {
 		g.screen.SetContent(i, 2, r, nil, style)
 	}
 
-	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1] - 1, '|', nil, style)
-	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1] + 0, '|', nil, style)
-	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1] + 1, '|', nil, style)
+	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1]-1, '|', nil, style)
+	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1]+0, '|', nil, style)
+	g.screen.SetContent(g.bat.pos[0], g.bat.pos[1]+1, '|', nil, style)
 	g.screen.Show()
 
 	time.Sleep(time.Millisecond * 20)
