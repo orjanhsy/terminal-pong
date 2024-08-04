@@ -105,9 +105,9 @@ func newBat() *Bat {
 }
 
 func (g *Game) draw(style tcell.Style) {
-	g.screen.Clear()
-
-	var quitText = "hit ctrl + c to quit"
+	g.screen.Clear()	
+	
+	var quitText = "hit 'ctrl + c' or 'q' to quit"
 	for i, r := range []rune(quitText) {
 		g.screen.SetContent(i, 0, r, nil, style)
 	}
@@ -136,15 +136,14 @@ func (g *Game) playerInput() {
 		case *tcell.EventResize:
 			g.screen.Sync()
 		case *tcell.EventKey:
-			switch ev.Key() {
-			case tcell.KeyUp:
-				g.bat.dir = up
-			case tcell.KeyDown:
-				g.bat.dir = down
-			case tcell.KeyCtrlC:
-				g.status = "off"
-			}
-		}
+      if ev.Key() == tcell.KeyUp {
+        g.bat.dir = up
+      } else if ev.Key() == tcell.KeyDown {
+        g.bat.dir = down
+      } else if ev.Key() == tcell.KeyCtrlC || ev.Rune() =='q' {  //ev.Rune() for chars
+        g.status = "off"
+      }
+    }
 	}
 }
 
